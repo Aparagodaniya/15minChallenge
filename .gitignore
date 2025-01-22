@@ -1,0 +1,5 @@
+*.pa
+*.pyc
+*.parquet
+*.h5
+
