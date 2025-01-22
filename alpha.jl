@@ -16,7 +16,8 @@ alpha = [
     col for col ∈ names(df)
     if col ∉ ["symbol", "group_id", "open_time", "close_time", label]
 ]
-rename!(df, "close_time" => "timestamp")
+rename!(df, "close_time" => "Timestamp", "symbol" => "Code")
+df.Date  = df.Timestamp .|> Date
 
 # %%
 println("label: $(label)")
