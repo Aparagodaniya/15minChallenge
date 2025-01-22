@@ -26,3 +26,10 @@ for (i, x) ∈ alpha |> enumerate
 end
 
 # %%
+codes = df.Code |> unique
+@show codes |> length
+for code ∈ codes
+    println(code)
+end
+
+# %%
