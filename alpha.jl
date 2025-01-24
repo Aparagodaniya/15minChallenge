@@ -45,6 +45,7 @@ y = df[!, label] |> Vector;
 @show y |> size
 
 # %%
+# Only for rtn prediction
 digit3 = x -> round(x, digits = 3)
 function pearson(x, y) 
     z = cor(x, y)
@@ -54,6 +55,31 @@ function pearson(x, y)
         return z
     end
 end
+function r2score(x, y)
+    z = r2_score(x, y)
+    if z === NaN
+        return missing
+    else    
+        return z
+    end
+end
+println("A Fake yhat = mean(y)")
+yhat = fill(mean(y), length(y))
+df.yhat = yhat
+groupInfo = combine(
+    groupby(df, "group_id"),
+    [:yhat, Symbol(label)] => pearson => :ic,
+    [:yhat, Symbol(label)] => r2score => :r2,
+)
+ic = groupInfo.ic |> skipmissing |> mean 
+@show ic |> digit3
+ir = ic / (groupInfo.ic |> skipmissing |> std)
+@show ir  |> digit3
+r2 = groupInfo.r2 |> skipmissing |> mean
+@show r2 |> digit3
+
+# %%
+# For both rtn and rank prediction
 function kT(x, y)
     z = corkendall(x, y)
     if z === NaN
@@ -70,20 +96,6 @@ function spearman(x, y)
         return z
     end
 end
-println("A Fake yhat = mean(y)")
-yhat = fill(mean(y), length(y))
-df.yhat = yhat
-groupInfo = combine(
-    groupby(df, "group_id"),
-    [:yhat, Symbol(label)] => pearson => :ic,
-    [:yhat, Symbol(label)] => r2_score => :r2,
-)
-ic = groupInfo.ic |> skipmissing |> mean 
-@show ic |> digit3
-ir = ic / (groupInfo.ic |> skipmissing |> std)
-@show ir  |> digit3
-r2 = groupInfo.r2 |> skipmissing |> mean
-@show r2 |> digit3
 println("A Fake yhat = rank(y)")
 yhat = ordinalrank(y)
 df.yhat = yhat
