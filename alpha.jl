@@ -22,12 +22,12 @@ alpha = [
     if col ∉ ["symbol", "group_id", "open_time", "close_time", label]
 ]
 rename!(df, "symbol" => "Code")
-df.Date  = df.close_time .|> Date
+df.Date  = df.close_time .|> Date;
 
 # %%
 println("label: $(label)")
 for (i, x) ∈ alpha |> enumerate
-    println("alpha$(i): $(x)")
+    println("alpha $(i): $(x)")
 end
 
 # %%
@@ -46,16 +46,56 @@ y = df[!, label] |> Vector;
 
 # %%
 digit3 = x -> round(x, digits = 3)
+function pearson(x, y) 
+    z = cor(x, y)
+    if z === NaN
+        return missing
+    else    
+        return z
+    end
+end
+function kT(x, y)
+    z = corkendall(x, y)
+    if z === NaN
+        return missing
+    else
+        return z
+    end
+end
+function spearman(x, y)
+    z = corspearman(x, y)
+    if z === NaN
+        return missing
+    else
+        return z
+    end
+end
 println("A Fake yhat = mean(y)")
 yhat = fill(mean(y), length(y))
-@show ic = cor(yhat, y) |> digit3
-@show ir = cor(yhat, y) / std(y) |> digit3
-@show r2 = r2_score(yhat, y) |> digit3
+df.yhat = yhat
+groupInfo = combine(
+    groupby(df, "group_id"),
+    [:yhat, Symbol(label)] => pearson => :ic,
+    [:yhat, Symbol(label)] => r2_score => :r2,
+)
+ic = groupInfo.ic |> skipmissing |> mean 
+@show ic |> digit3
+ir = ic / (groupInfo.ic |> skipmissing |> std)
+@show ir  |> digit3
+r2 = groupInfo.r2 |> skipmissing |> mean
+@show r2 |> digit3
 println("A Fake yhat = rank(y)")
 yhat = ordinalrank(y)
-@show tau = corkendall(yhat, y) |> digit3
-@show spearman = corspearman(yhat, y) |> digit3
 df.yhat = yhat
+groupInfo = combine(
+    groupby(df, "group_id"),
+    [:yhat, Symbol(label)] => kT => :tau,
+    [:yhat, Symbol(label)] => spearman => :spearman,
+)
+tau = groupInfo.tau |> skipmissing |> mean
+spr = groupInfo.spearman |> skipmissing |> mean
+@show tau |> digit3
+@show spr |> digit3
 function posRtn(_y, y)
     best = partialsortperm(_y, 1 : length(_y) ÷ 10; rev = true)
     y[best] |> sum
@@ -69,7 +109,9 @@ rtn = combine(
     [:yhat, Symbol(label)] => posRtn => :posRtn,
     [:yhat, Symbol(label)] => negRtn => :negRtn,
 )
-@show rtn[!, :posRtn] |> mean |> digit3;
-@show rtn[!, :negRtn] |> mean |> digit3;
+posRtnMean = rtn[!, :posRtn] |> mean
+@show posRtnMean |> digit3
+negRtnMean = rtn[!, :negRtn] |> mean
+@show negRtnMean |> digit3;
 
 # %%
